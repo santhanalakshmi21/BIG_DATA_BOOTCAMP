@@ -1,0 +1,87 @@
+1.create table
+create table patient(pid INT, pname STRING, drug STRING,gender STRING,tot_amt INT) row format delimited fields terminated by ',' stored as textfile;
+
+2. Load data 
+insert into patient (1,'gowtham','avil','male',1000);
+or
+load data local inpath '/home/<username>/data.txt' into table patient;
+or
+load data inpath '/home/<username>/data.txt' into table patient;
+
+3. agg 
+
+select sum(tot_amt) from patient where drug = 'paracetamol';
+select drug , sum(tot_amt) from patient group by drug;
+
+3. desc 
+
+desc extended patient;
+desc patient;
+
+
+4 insert over write 
+create table drug (drug STRING) row format delimited fields terminated by 
+',' stored as textfile;
+
+insert overwrite table drug select drug from patient;
+
+5. External Table
+
+create EXTERNAL table patient_external(pid INT, pname STRING, drug STRING,gender STRING,tot_amt INT) row format delimited fields terminated by ',' stored as textfile LOCATION '/patient_external';
+
+LOAD DATA INPATH '/data10.txt' INTO table patient_external;
+
+drop table patient_external;
+
+6. Partition
+
+create  table patient_static_partition(pid INT, pname STRING, drug STRING,gender STRING,tot_amt INT) partitioned by (drug string);
+insert into patient_static_partition partition(drug='avil') select pid,pname,drug,gender,tot_amt from patient where drug='avil';
+
+create  table patient_dynamic_partition(pid INT, pname STRING, drug STRING,gender STRING,tot_amt INT) partitioned by (drug string);
+insert into patient_dynamic_partition partition(drug) select pid,pname,drug,gender,tot_amt from patient where drug='avil';
+
+7. Storage formats 
+
+create table patient_textfile(pid INT, pname STRING, drug STRING,gender STRING,tot_amt INT) row format delimited fields terminated by ',' stored as  textfile;
+
+load data local inpath '/home/<username>/data.txt' into table  patient_textfile;
+
+create table patient_orc(pid INT, pname STRING, drug STRING,gender STRING,tot_amt INT) row format delimited fields terminated by ','  STORED AS orc;
+
+insert overwrite table patient_orc select * from patient_textfile;
+
+show create table patient_textfile;
+
+select count(*) from patient_textfile where tot_amt=110;
+select count(*) from patient_orc where tot_amt=110;
+
+8. Hive ACID
+
+set hive.support.concurrency = true;
+set hive.enforce.bucketing = true;
+set hive.exec.dynamic.partition.mode = nonstrict;
+set hive.txn.manager =org.apache.hadoop.hive.ql.lockmgr.DbTxnManager;
+set hive.compactor.initiator.on = true;
+set hive.compactor.worker.threads = 1;
+
+
+1. internal tabel
+2. Bucket
+3. orc 
+4. transactional='true'
+
+
+create table acid_example (sno int,name string, city string)clustered by (city) into 3 buckets stored as orc  TBLPROPERTIES ('transactional'='true');
+
+insert into table acid_example (sno,name,city) values (1,'gowtham','chennai');
+update acid_example set name='john' where sno='1';
+delete from acid_example where sno='1';
+
+9.HIVE UDF
+add jar /home/username/hive_udf.jar;
+list jars;
+
+create temporary function custom_upper as 'org.samples.hive.training.HiveUDF';
+
+select custom_upper(gender) from patient;
